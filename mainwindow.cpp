@@ -20,8 +20,8 @@ MainWindow::MainWindow(QWidget* parent)
     QVBoxLayout* globalLayout = new QVBoxLayout;
 
     QFormLayout* connectLayout = new QFormLayout;
-    QLineEdit* ipEdit = new QLineEdit("10.0.0.37");
-    QLineEdit* usernameEdit = new QLineEdit("rqHvMLAJK3bcGy0mzXAStU3zq6D2CGGMc3i9eVxS");
+    QLineEdit* ipEdit = new QLineEdit("IP Address");
+    QLineEdit* usernameEdit = new QLineEdit("Username");
     connectLayout->addRow(tr("&IP"), ipEdit );
     connectLayout->addRow(tr("&Username"), usernameEdit);
     globalLayout->addLayout(connectLayout);

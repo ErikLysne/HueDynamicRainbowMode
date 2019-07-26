@@ -32,39 +32,28 @@ MainWindow::MainWindow(QWidget* parent)
     QPushButton* connectButton = new QPushButton("&Connect");
     globalLayout->addWidget(connectButton);
 
+    HueBridge* bridge = nullptr;
+    HueLightList* lights = nullptr;
+
+    QTimer* rainbowTimer = new QTimer(this);
+
     connect(connectButton, &QPushButton::clicked, this,
-            [this, ipEdit, usernameEdit, statusLabel] ()
+            [this, ipEdit, usernameEdit, &bridge, &lights, rainbowTimer, statusLabel] ()
     {
-        HueBridge* bridge = new HueBridge(ipEdit->text(),usernameEdit->text());
+        bridge = new HueBridge(ipEdit->text(),usernameEdit->text());
 
         HueBridge::ConnectionStatus status;
-
         if (bridge->testConnection(status)) {
             statusLabel->setText("<b><FONT COLOR = '#006400'>Connected</b>");
 
-            HueLightList* lights = new HueLightList(HueLight::discoverLights(bridge));
+            lights = new HueLightList(HueLight::discoverLights(bridge));
 
-            QTimer* rainbowTimer = new QTimer(this);
-            connect(rainbowTimer, &QTimer::timeout, this,
-                    [lights] ()
-            {
-                static int rainbowHue[3] = {
-                    65535,  // red
-                    21845,  // green
-                    43690   // blue
-                                    };
-                static int offset = 0;
+            for (auto light : *lights) {
+                light->setBrightness(254);
+                light->setSaturation(254);
+            }
 
-                int index = 0;
-                for( auto light : *lights ) {
-                    light->setHue(rainbowHue[(index++ + offset) % 3]);
-                }
-                offset++;
-            });
-
-            rainbowTimer->setInterval(1000);
             rainbowTimer->start();
-
         }
         else {
             switch (status) {
@@ -80,7 +69,31 @@ MainWindow::MainWindow(QWidget* parent)
                 statusLabel->setText("<b><FONT COLOR = '#ff0000'>Unknown error</b>");
                 break;
             }
+
+            lights = nullptr;
+            rainbowTimer->stop();
         }
+    });
+
+    rainbowTimer->setInterval(1000);
+    connect(rainbowTimer, &QTimer::timeout, this,
+            [&lights] ()
+    {
+        static int rainbowHue[3] = {
+            65535,  // red
+            21845,  // green
+            43690   // blue
+                            };
+        static int offset = 0;
+
+        if (lights == nullptr)
+            return;
+
+        int index = 0;
+        for (auto light : *lights)
+            light->setHue(rainbowHue[(index++ + offset) % 3]);
+
+        offset++;
     });
 
     globalLayout->addStretch();

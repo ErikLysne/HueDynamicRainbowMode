@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 
+#include "../HueLib/HueLib/huelib.h"
+
 
 namespace Ui {
 class MainWindow;
@@ -18,6 +20,9 @@ public:
 
 private:
     Ui::MainWindow* ui;
+    HueBridge* bridge;
+    HueLightList* lights;
+    HueGroupList* groups;
 };
 
 #endif // MAINWINDOW_H

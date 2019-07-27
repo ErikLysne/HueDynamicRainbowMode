@@ -7,21 +7,24 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QTimer>
-
-#include "../HueLib/HueLib/huelib.h"
+#include <QCheckBox>
+#include <QMap>
 
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , bridge(nullptr)
+    , lights(nullptr)
+    , groups(nullptr)
 {
     ui->setupUi(this);
 
     QVBoxLayout* globalLayout = new QVBoxLayout;
 
     QFormLayout* connectLayout = new QFormLayout;
-    QLineEdit* ipEdit = new QLineEdit("IP Address");
-    QLineEdit* usernameEdit = new QLineEdit("Username");
+    QLineEdit* ipEdit = new QLineEdit("10.0.0.37");
+    QLineEdit* usernameEdit = new QLineEdit("rqHvMLAJK3bcGy0mzXAStU3zq6D2CGGMc3i9eVxS");
     connectLayout->addRow(tr("&IP"), ipEdit );
     connectLayout->addRow(tr("&Username"), usernameEdit);
     globalLayout->addLayout(connectLayout);
@@ -32,28 +35,38 @@ MainWindow::MainWindow(QWidget* parent)
     QPushButton* connectButton = new QPushButton("&Connect");
     globalLayout->addWidget(connectButton);
 
-    HueBridge* bridge = nullptr;
-    HueLightList* lights = nullptr;
+    QVBoxLayout* roomLayout = new QVBoxLayout;
+    globalLayout->addLayout(roomLayout);
 
     QTimer* rainbowTimer = new QTimer(this);
+    QMap<QString, QCheckBox*> roomMap;
 
     connect(connectButton, &QPushButton::clicked, this,
-            [this, ipEdit, usernameEdit, &bridge, &lights, rainbowTimer, statusLabel] ()
+            [this, ipEdit, usernameEdit, rainbowTimer, statusLabel, &roomMap, roomLayout] ()
     {
-        bridge = new HueBridge(ipEdit->text(),usernameEdit->text());
+        bridge = new HueBridge(ipEdit->text(), usernameEdit->text());
 
         HueBridge::ConnectionStatus status;
         if (bridge->testConnection(status)) {
             statusLabel->setText("<b><FONT COLOR = '#006400'>Connected</b>");
 
             lights = new HueLightList(HueLight::discoverLights(bridge));
+            groups = new HueGroupList(HueGroup::discoverGroups(bridge));
 
             for (auto light : *lights) {
                 light->setBrightness(254);
-                light->setSaturation(254);
+                light->setSaturation(1);
+                light->setAlert(HueAbstractObject::Breathe15Sec);
+            }
+
+            int index = 0;
+            for (auto group : *groups) {
+                QCheckBox* roomCheck = new QCheckBox(group->name().getName());
+                roomLayout->addWidget(roomCheck);
             }
 
             rainbowTimer->start();
+
         }
         else {
             switch (status) {
@@ -77,7 +90,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     rainbowTimer->setInterval(1000);
     connect(rainbowTimer, &QTimer::timeout, this,
-            [&lights] ()
+            [this] ()
     {
         static int rainbowHue[3] = {
             65535,  // red
